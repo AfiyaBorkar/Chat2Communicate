@@ -85,7 +85,7 @@ const accessChats = expresshandler(async (req, res) => {
 
 const fetchChats = expresshandler(async (req, res) => {
   try {
-    console.log("Fetch Chats aPI : ", req);
+    // console.log("Fetch Chats aPI : ", req);
     ChatModel.find({ users: { $elemMatch: { $eq: req.user._id } } })
       .populate("users", "-password")
       .populate("groupAdmin", "-password")
@@ -104,17 +104,56 @@ const fetchChats = expresshandler(async (req, res) => {
   }
 });
 
+// const createGroupChat = expresshandler(async (req, res) => {
+//   if (!req.body.users || !req.body.name) {
+//     console.log("Data is not sufficient");
+//   }
+
+//   // console.log("chatcontroller/creatchat: ", req);
+
+//   const users = JSON.parse(req.body.users);
+
+//   // Add req.user to the list of users
+//   users.push(req.user);
+//   try {
+//     const existingGroup = await ChatModel.findOne({ chatName: req.body.name });
+
+//     if (existingGroup) {
+//       res
+//         .status(409)
+//         .json({ message: `Group "${req.body.name}" already exists.` });
+//     } else {
+//       const createGroup = await ChatModel.create({
+//         chatName: req.body.name,
+//         isGroupChat: true,
+//         groupAdmin: req.user, // Use req.user for the creator
+//         users: users,
+//       });
+
+//       const FullGroupChat = await ChatModel.find({ _id: createGroup._id })
+//         .populate("users", "-password")
+//         .populate("groupAdmin", "-password");
+
+//       res.status(200).json(FullGroupChat);
+//     }
+//   } catch (e) {
+//     res.status(400);
+//     throw new Error(e.message);
+//   }
+// });
+
 const createGroupChat = expresshandler(async (req, res) => {
   if (!req.body.users || !req.body.name) {
     console.log("Data is not sufficient");
   }
 
-  console.log("chatcontroller/creatchat: ", req);
-
-  const users = JSON.parse(req.body.users);
+  // No need to parse req.body.users if it's a single user
+  const user = req.body.users;
 
   // Add req.user to the list of users
-  users.push(req.user);
+  // (assuming req.user is a valid user identifier)
+  const users = [req.user, user];
+
   try {
     const existingGroup = await ChatModel.findOne({ chatName: req.body.name });
 
@@ -126,7 +165,7 @@ const createGroupChat = expresshandler(async (req, res) => {
       const createGroup = await ChatModel.create({
         chatName: req.body.name,
         isGroupChat: true,
-        groupAdmin: req.user, // Use req.user for the creator
+        groupAdmin: req.user,
         users: users,
       });
 
@@ -141,6 +180,7 @@ const createGroupChat = expresshandler(async (req, res) => {
     throw new Error(e.message);
   }
 });
+
 
 const fetchGroupChats = expresshandler(async (req, res) => {
   try {

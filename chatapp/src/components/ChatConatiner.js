@@ -10,10 +10,11 @@ import { myContext } from "./MainContainer";
 import Skeleton from "@mui/material/Skeleton";
 // import { useRef } from "react";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import { io } from "socket.io-client";
 import axios from "axios";
 
-export default function ChatConatiner() {
+
+export default function ChatConatiner({socket}) {
+
   const LightTheme = useSelector((state) => state.themeKey);
   const dyParams = useParams();
   const nav = useNavigate();
@@ -24,13 +25,14 @@ export default function ChatConatiner() {
   const [copyallMessages, setCopyAllMessages] = useState([]);
   const [load, setLoad] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
+  const [data, setData] = useState([]);
   const [SocketConnectionStatus, setSocketConnectionStatus] = useState(false);
   const chatContainerRef = useRef(null);
 
   let userData = JSON.parse(localStorage.getItem("userData"));
-  const ENDPOINT = "http://localhost:8080";
   // var socket = io(ENDPOINT);
- var socket = useRef(io(ENDPOINT));
+
+
 
   if (!userData) {
     console.log("User not authorized");
@@ -38,39 +40,55 @@ export default function ChatConatiner() {
   }
 
   useEffect(() => {
-    
-    socket.current.emit("set-up", userData);
+   
+    socket.emit("set-up",userData);
+    socket.on("connected",()=>{
+      setSocketConnectionStatus(!SocketConnectionStatus)
+    })
   
-    socket.current.on("connected", () => {
-      setSocketConnectionStatus(true);
-    });
+   
   
-    socket.current.on("disconnect", () => {
-      setSocketConnectionStatus(false);
-    });
-  
-    return () => {
-      socket.current.disconnect(); // Disconnect the socket when the component unmounts
-    };
-  }, [userData,socket]);
+  }, [])
+
   
 
-  //new message received event
 
-  // useEffect(() => {
-  //   socket.on("message received", (newMessage) => {
-  //     if (!copyallMessages || copyallMessages._id !== newMessage._id) {
-  //     } else {
-  //       setAllMessages([...allMessages], newMessage);
-  //     }
-  //   });
-  // }, [allMessages,copyallMessages,socket]);
+
   useEffect(() => {
-    socket.current.on("message received", (newMessage) => {
-      setAllMessages((prevMessages) => [...prevMessages, newMessage]);
-    });
+    // Fetch initial messages and set them to allMessages
+    const fetchMessages = async () => {
+      try {
+        const config = {
+          headers: {
+            Authorization: `Bearer ${userData.data.token}`,
+          },
+        };
+        const response = await axios.get(`http://localhost:8080/message/${chat_id}`, config);
+        setAllMessages(response.data);
+        setLoad(true);
+        socket.emit("join-chat", chat_id);
+      } catch (error) {
+        console.error("Error fetching messages:", error);
+      }
+    };
+
+    fetchMessages();
   }, []);
 
+
+  useEffect(() => {
+    // Listen for new messages and update allMessages
+    const handleNewMessage = (newMessage) => {
+      setAllMessages((prevMessages) => [...prevMessages, newMessage.newMessage]);
+    };
+
+    socket.on("message received", handleNewMessage);
+
+    return () => {
+      // Clean up the event listener when component unmounts
+      socket.off("message received", handleNewMessage);
+    };
+  }, [socket]);
 
   const sendMessage = () => {
     const config = {
@@ -79,19 +97,41 @@ export default function ChatConatiner() {
       },
     };
 
-    axios
-      .post(
-        "http://localhost:8080/message/",
-        {
-          content: messageContent,
-          chatId: chat_id,
-        },
-        config
-      )
-      .then(({ data }) => {
-        // console.log("Message is fired");
-      });
+    axios.post(
+      "http://localhost:8080/message/",
+      {
+        content: messageContent,
+        chatId: chat_id,
+      },
+      config
+    )
+    .then(({ data }) => {
+
+      setData(data)
+
+      // Message sent successfully
+      socket.emit("new-message", { newMessage: data });
+      // console.log("new-message event emitted");
+      // console.log("jsonnewmessg", { newMessage: data });
+    setAllMessages((prevMessages)=>[...prevMessages,data]);
+
+    })
+    .catch((error) => {
+      console.error("Error sending message:", error);
+    });
+
+    // Clear the input field and trigger a refresh
+    setMessageContent("");
+    setRefresh(!refresh);
   };
+
+  useEffect(()=>{
+    // setAllMessages((prevMessages) => [...prevMessages, newMessage.newMessage]);
+
+  },[refresh])
+  
+
+  
 
   const scrollDown = () => {
     if (chatContainerRef.current) {
@@ -115,23 +155,7 @@ export default function ChatConatiner() {
     }
   }, [allMessages]);
 
-  useEffect(() => {
-    const config = {
-      headers: {
-        Authorization: `Bearer ${userData.data.token}`,
-      },
-    };
-
-    axios
-      .get(`http://localhost:8080/message/${chat_id}`, config)
-      .then(({ data }) => {
-        setAllMessages(data);
-        setLoad(true);
-        socket.current.emit("join-chat", chat_id);
-        // scrollDown()
-      });
-    setCopyAllMessages(allMessages);
-  }, [refresh, chat_id, userData.data.token, allMessages,socket]);
+ 
 
   useEffect(() => {
     if (chatContainerRef.current) {

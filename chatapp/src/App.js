@@ -9,8 +9,12 @@ import Groups from './components/Groups';
 import CreateGroup from './components/CreateGroup';
 import RegisterPage from './components/RegisterPage';
 import Conversation from './components/Conversation';
-// import ConversationItems from './components/ConversationItems';
+import { io } from "socket.io-client";
 
+// import ConversationItems from './components/ConversationItems';
+const ENDPOINT = "http://localhost:8080";
+
+const socket=io(ENDPOINT);
 function App() {
   return (
     <div className='App'>
@@ -30,7 +34,7 @@ function App() {
     <Route path='welcome' element={<WelcomePage/>}/>
     <Route path='chatlist' element={<Conversation/>}/>
 
-    <Route path='chat/:_id' element={<ChatConatiner/>}/>
+    <Route path='chat/:_id' element={<ChatConatiner socket={socket} />}/>
     <Route path="users" element={<Users/>}/>
     <Route path='groups' element={<Groups/>}/>
     <Route path='creategroup'  element={<CreateGroup/>}/> 

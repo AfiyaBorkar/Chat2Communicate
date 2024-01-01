@@ -61,7 +61,7 @@ function CreateGroup() {
         "http://localhost:8080/chat/createGroup",
         {
           name: groupName,
-          users: `[${userData.data._id}]`, // Use userData for the creator
+          users: userData.data._id, // Use userData for the creator
         },
         config
       );
@@ -112,9 +112,9 @@ function CreateGroup() {
         />
         <div className="chat-input">
           <input
-            className={`search-box ${LightTheme ? " " : "dark"}`}
+            className={`search-box `}
             placeholder="Type Group Name"
-            style={{ height: "2rem", width: "100%" }}
+            style={{ height: "2rem", width: "100%",color:"black" }}
             onChange={(e) => {
               setGroupName(e.target.value);
             }}

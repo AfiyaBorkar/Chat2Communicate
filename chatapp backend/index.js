@@ -45,7 +45,7 @@ const io = socket(server, {
   cors: {
     origin: "*",
   },
-  pingTimeout: 60000,
+  // pingTimeout: 60000,
 });
 
 io.on("connection", (socket) => {
@@ -62,24 +62,56 @@ io.on("connection", (socket) => {
 
   socket.on("new-message", (newmessageStatus) => {
     try {
-      const { chat, sender, newmessageReceived } = newmessageStatus;
+      
+      const chat= newmessageStatus.newMessage.chat;
 
-      if (!chat || !chat.users) {
-        throw new Error("Invalid chat or chat users");
+      if (!chat.users) {
+        console.log("chats.user USers not defined");
       }
-
+      // console.log("now usrs:",newmessageStatus)
+        // socket.in(user._id).emit("message received", newmessageStatus);
+console.log("chat",chat)
       chat.users.forEach((user) => {
-        if (user._id !== sender._id) {
-          io.to(user._id).emit("message received", newmessageReceived);
+        if (user._id === newmessageStatus.newMessage.sender._id) {
+          return
         }
+        
+        socket.in(user._id).emit("message received", newmessageStatus);
+        console.log("456789")
+
+        console.log("id",user._id)
+
+        
+        
       });
+
     } catch (error) {
       console.error("Error handling new message:", error);
     }
   });
 
-  socket.on("disconnect", () => {
-    console.log(`Socket disconnected: ${socket.id}`);
-    // Perform any cleanup or additional logic on socket disconnect
-  });
+//   socket.on("new-message", (newMessageStatus) => {
+//     try {
+//       const { chat, sender, newMessage } = newMessageStatus;
+
+//       if (!chat || !chat.users) {
+//         throw new Error("Invalid chat or chat users");
+//       }
+
+// console.log("now chat",chat)
+//       chat.users.forEach((user) => {
+//         if (user._id !== sender._id) {
+//           io.to(user._id).emit("message received", newMessage);
+//         }
+//       });
+//     } catch (error) {
+//       console.error("Error handling new message:", error);
+//     }
+//   });
+
+
+  // socket.on("disconnect", () => {
+  //   console.log(`Socket disconnected: ${socket.id}`);
+  //   // Perform any cleanup or additional logic on socket disconnect
+  // });
 });
